@@ -3,6 +3,7 @@
 #include "htif.h"
 #include "rfb.h"
 #include "elfloader.h"
+#include "encoding.h"
 #include <algorithm>
 #include <assert.h>
 #include <vector>
@@ -146,15 +147,19 @@ void htif_t::start()
   assert(!started);
   started = true;
 
-  load_program();
+  if (!targs.empty()) {
+    targs.insert(targs.begin() + 1, "-m" + std::to_string(mem_mb()));
+    targs.insert(targs.begin() + 1, "-p" + std::to_string(num_cores()));
+
+    if (targs[0] != "none")
+      load_program();
+  }
+
   reset();
 }
 
 void htif_t::load_program()
 {
-  if (targs.size() == 0 || targs[0] == "none")
-    return;
-
   std::string path;
   if (access(targs[0].c_str(), F_OK) == 0)
     path = targs[0];
@@ -180,16 +185,10 @@ void htif_t::load_program()
 
 void htif_t::reset()
 {
-  uint32_t first_words[] = {mem_mb(), num_cores()};
-  size_t al = chunk_align();
-  uint8_t chunk[(sizeof(first_words)+al-1)/al*al];
-  memcpy(chunk, first_words, sizeof(first_words));
-  write_chunk(0, sizeof(chunk), chunk);
-
   for (uint32_t i = 0; i < num_cores(); i++)
   {
-    write_cr(i, 29, 1);
-    write_cr(i, 29, 0);
+    write_cr(i, CSR_MRESET, 1);
+    write_cr(i, CSR_MRESET, 0);
   }
 }
 
@@ -217,7 +216,7 @@ void htif_t::stop()
   }
 
   for (uint32_t i = 0, nc = num_cores(); i < nc; i++)
-    write_cr(i, 29, 1);
+    write_cr(i, CSR_MRESET, 1);
 
   stopped = true;
 }
@@ -298,7 +297,7 @@ int htif_t::run()
   {
     for (uint32_t coreid = 0; coreid < num_cores(); coreid++)
     {
-      if (auto tohost = write_cr(coreid, 30, 0))
+      if (auto tohost = write_cr(coreid, CSR_MTOHOST, 0))
       {
         command_t cmd(this, tohost, fromhost_callbacks[coreid]);
         device_list.handle_command(cmd);
@@ -307,7 +306,7 @@ int htif_t::run()
       device_list.tick();
 
       if (!fromhost[coreid].empty())
-        if (write_cr(coreid, 31, fromhost[coreid].front()) == 0)
+        if (write_cr(coreid, CSR_MFROMHOST, fromhost[coreid].front()) == 0)
           fromhost[coreid].pop();
     }
   }
