@@ -1,6 +1,7 @@
 // See LICENSE for license details.
 
 #include "htif.h"
+#include "configstring.h"
 #include "rfb.h"
 #include "elfloader.h"
 #include "encoding.h"
@@ -57,7 +58,7 @@ void htif_t::set_chroot(const char* where)
 
 htif_t::htif_t(const std::vector<std::string>& args)
   : exitcode(0), mem(this), seqno(1), started(false), stopped(false),
-    _mem_mb(0), _num_cores(0), sig_addr(0), sig_len(0),
+    _num_cores(0), sig_addr(0), sig_len(0), tohost_addr(0), fromhost_addr(0),
     syscall_proxy(this)
 {
   signal(SIGINT, &handle_signal);
@@ -147,6 +148,8 @@ void htif_t::start()
   assert(!started);
   started = true;
 
+  config_string = read_config_string(mem.read_uint32(CONFIG_STRING_ADDR));
+
   if (!targs.empty() && targs[0] != "none")
       load_program();
 
@@ -169,6 +172,13 @@ void htif_t::load_program()
     throw std::runtime_error("could not open " + targs[0]);
 
   std::map<std::string, uint64_t> symbols = load_elf(path.c_str(), &mem);
+
+  if (symbols.count("tohost") && symbols.count("fromhost")) {
+    tohost_addr = symbols["tohost"];
+    fromhost_addr = symbols["fromhost"];
+  } else {
+    fprintf(stderr, "warning: tohost and fromhost symbols not in ELF; can't communicate with target\n");
+  }
 
   // detect torture tests so we can print the memory signature at the end
   if (symbols.count("begin_signature") && symbols.count("end_signature"))
@@ -281,28 +291,28 @@ reg_t htif_t::write_cr(uint32_t coreid, uint16_t regnum, reg_t val)
 int htif_t::run()
 {
   start();
-  std::vector<std::queue<reg_t>> fromhost(num_cores());
 
   auto enq_func = [](std::queue<reg_t>* q, uint64_t x) { q->push(x); };
-  std::vector<std::function<void(reg_t)>> fromhost_callbacks;
-  for (size_t i = 0; i < num_cores(); i++)
-    fromhost_callbacks.push_back(std::bind(enq_func, &fromhost[i], std::placeholders::_1));
+  std::queue<reg_t> fromhost_queue;
+  std::function<void(reg_t)> fromhost_callback =
+    std::bind(enq_func, &fromhost_queue, std::placeholders::_1);
 
   while (!signal_exit && exitcode == 0)
   {
-    for (uint32_t coreid = 0; coreid < num_cores(); coreid++)
-    {
-      if (auto tohost = write_cr(coreid, CSR_MTOHOST, 0))
-      {
-        command_t cmd(this, tohost, fromhost_callbacks[coreid]);
-        device_list.handle_command(cmd);
-      }
+    if (!tohost_addr)
+      continue;
 
-      device_list.tick();
+    if (auto tohost = mem.read_uint64(tohost_addr)) {
+      mem.write_uint64(tohost_addr, 0);
+      command_t cmd(this, tohost, fromhost_callback);
+      device_list.handle_command(cmd);
+    }
 
-      if (!fromhost[coreid].empty())
-        if (write_cr(coreid, CSR_MFROMHOST, fromhost[coreid].front()) == 0)
-          fromhost[coreid].pop();
+    device_list.tick();
+
+    if (!fromhost_queue.empty() && mem.read_uint64(fromhost_addr) == 0) {
+      mem.write_uint64(fromhost_addr, fromhost_queue.front());
+      fromhost_queue.pop();
     }
   }
 
@@ -311,18 +321,37 @@ int htif_t::run()
   return exit_code();
 }
 
-uint32_t htif_t::num_cores()
+std::string htif_t::read_config_string(reg_t addr)
 {
-  if (_num_cores == 0)
-    _num_cores = read_cr(-1, 0);
-  return _num_cores;
+  const int quantum = 16;
+  char buf[quantum];
+  std::string res;
+
+  for ( ; ; addr += quantum) {
+    mem.read(addr, quantum, (uint8_t*)buf);
+    if (memchr(buf, 0, quantum))
+      return res + buf;
+    res.append(buf, quantum);
+  }
 }
 
-uint32_t htif_t::mem_mb()
+uint32_t htif_t::num_cores()
 {
-  if (_mem_mb == 0)
-    _mem_mb = read_cr(-1, 1);
-  return _mem_mb;
+  if (_num_cores == 0) {
+    char buf[64];
+    for (int cores = 0, harts; ; cores++) {
+      for (harts = 0; ; harts++) {
+        sprintf(buf, "core{%d{%d", cores, harts);
+        if (!query_config_string(config_string.c_str(), buf).start)
+          break;
+        _num_cores++;
+      }
+      if (harts == 0)
+        break;
+    }
+    assert(_num_cores);
+  }
+  return _num_cores;
 }
 
 bool htif_t::done()
