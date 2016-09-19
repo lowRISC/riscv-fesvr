@@ -12,7 +12,7 @@ int main(int argc, char** argv)
 #if 0
 int poll_tohost(int coreid, addr_t sig_addr, int sig_len)
 {
-  reg_t tohost;
+  word_t tohost;
   while ((tohost = htif->read_cr(coreid, 30)) == 0);
   if (tohost == 1)
   {

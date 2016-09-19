@@ -9,7 +9,7 @@
 #include <map>
 
 class syscall_t;
-typedef reg_t (syscall_t::*syscall_func_t)(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
+typedef word_t (syscall_t::*syscall_func_t)(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
 
 class htif_t;
 class memif_t;
@@ -17,9 +17,9 @@ class memif_t;
 class fds_t
 {
  public:
-  reg_t alloc(int fd);
-  void dealloc(reg_t fd);
-  int lookup(reg_t fd);
+  word_t alloc(int fd);
+  void dealloc(word_t fd);
+  int lookup(word_t fd);
  private:
   std::vector<int> fds;
 };
@@ -42,27 +42,27 @@ class syscall_t : public device_t
   std::string do_chroot(const char* fn);
   std::string undo_chroot(const char* fn);
 
-  reg_t sys_exit(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_openat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_read(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_pread(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_write(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_pwrite(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_close(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_lseek(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_fstat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_lstat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_fstatat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_faccessat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_fcntl(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_ftruncate(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_renameat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_linkat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_unlinkat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_mkdirat(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_getcwd(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_getmainvars(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
-  reg_t sys_chdir(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
+  word_t sys_exit(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_openat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_read(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_pread(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_write(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_pwrite(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_close(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_lseek(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_fstat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_lstat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_fstatat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_faccessat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_fcntl(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_ftruncate(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_renameat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_linkat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_unlinkat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_mkdirat(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_getcwd(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_getmainvars(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
+  word_t sys_chdir(word_t, word_t, word_t, word_t, word_t, word_t, word_t);
 };
 
 #endif

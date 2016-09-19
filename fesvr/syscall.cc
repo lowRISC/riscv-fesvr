@@ -116,54 +116,54 @@ void syscall_t::handle_syscall(command_t cmd)
   cmd.respond(1);
 }
 
-reg_t syscall_t::sys_exit(reg_t code, reg_t a1, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_exit(word_t code, word_t a1, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   htif->exitcode = code << 1 | 1;
   return 0;
 }
 
-static reg_t sysret_errno(sreg_t ret)
+static word_t sysret_errno(sword_t ret)
 {
   return ret == -1 ? -errno : ret;
 }
 
-reg_t syscall_t::sys_read(reg_t fd, reg_t pbuf, reg_t len, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_read(word_t fd, word_t pbuf, word_t len, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> buf(len);
   ssize_t ret = read(fds.lookup(fd), &buf[0], len);
-  reg_t ret_errno = sysret_errno(ret);
+  word_t ret_errno = sysret_errno(ret);
   if (ret > 0)
     memif->write(pbuf, ret, &buf[0]);
   return ret_errno;
 }
 
-reg_t syscall_t::sys_pread(reg_t fd, reg_t pbuf, reg_t len, reg_t off, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_pread(word_t fd, word_t pbuf, word_t len, word_t off, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> buf(len);
   ssize_t ret = pread(fds.lookup(fd), &buf[0], len, off);
-  reg_t ret_errno = sysret_errno(ret);
+  word_t ret_errno = sysret_errno(ret);
   if (ret > 0)
     memif->write(pbuf, ret, &buf[0]);
   return ret_errno;
 }
 
-reg_t syscall_t::sys_write(reg_t fd, reg_t pbuf, reg_t len, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_write(word_t fd, word_t pbuf, word_t len, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> buf(len);
   memif->read(pbuf, len, &buf[0]);
-  reg_t ret = sysret_errno(write(fds.lookup(fd), &buf[0], len));
+  word_t ret = sysret_errno(write(fds.lookup(fd), &buf[0], len));
   return ret;
 }
 
-reg_t syscall_t::sys_pwrite(reg_t fd, reg_t pbuf, reg_t len, reg_t off, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_pwrite(word_t fd, word_t pbuf, word_t len, word_t off, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> buf(len);
   memif->read(pbuf, len, &buf[0]);
-  reg_t ret = sysret_errno(pwrite(fds.lookup(fd), &buf[0], len, off));
+  word_t ret = sysret_errno(pwrite(fds.lookup(fd), &buf[0], len, off));
   return ret;
 }
 
-reg_t syscall_t::sys_close(reg_t fd, reg_t a1, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_close(word_t fd, word_t a1, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   if (close(fds.lookup(fd)) < 0)
     return sysret_errno(-1);
@@ -171,16 +171,16 @@ reg_t syscall_t::sys_close(reg_t fd, reg_t a1, reg_t a2, reg_t a3, reg_t a4, reg
   return 0;
 }
 
-reg_t syscall_t::sys_lseek(reg_t fd, reg_t ptr, reg_t dir, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_lseek(word_t fd, word_t ptr, word_t dir, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   return sysret_errno(lseek(fds.lookup(fd), ptr, dir));
 }
 
-reg_t syscall_t::sys_fstat(reg_t fd, reg_t pbuf, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_fstat(word_t fd, word_t pbuf, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   struct stat buf;
-  reg_t ret = sysret_errno(fstat(fds.lookup(fd), &buf));
-  if (ret != (reg_t)-1)
+  word_t ret = sysret_errno(fstat(fds.lookup(fd), &buf));
+  if (ret != (word_t)-1)
   {
     riscv_stat rbuf(buf);
     memif->write(pbuf, sizeof(rbuf), &rbuf);
@@ -188,25 +188,25 @@ reg_t syscall_t::sys_fstat(reg_t fd, reg_t pbuf, reg_t a2, reg_t a3, reg_t a4, r
   return ret;
 }
 
-reg_t syscall_t::sys_fcntl(reg_t fd, reg_t cmd, reg_t arg, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_fcntl(word_t fd, word_t cmd, word_t arg, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   return sysret_errno(fcntl(fds.lookup(fd), cmd, arg));
 }
 
-reg_t syscall_t::sys_ftruncate(reg_t fd, reg_t len, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_ftruncate(word_t fd, word_t len, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   return sysret_errno(ftruncate(fds.lookup(fd), len));
 }
 
-reg_t syscall_t::sys_lstat(reg_t pname, reg_t len, reg_t pbuf, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_lstat(word_t pname, word_t len, word_t pbuf, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> name(len);
   memif->read(pname, len, &name[0]);
 
   struct stat buf;
-  reg_t ret = sysret_errno(lstat(do_chroot(&name[0]).c_str(), &buf));
+  word_t ret = sysret_errno(lstat(do_chroot(&name[0]).c_str(), &buf));
   riscv_stat rbuf(buf);
-  if (ret != (reg_t)-1)
+  if (ret != (word_t)-1)
   {
     riscv_stat rbuf(buf);
     memif->write(pbuf, sizeof(rbuf), &rbuf);
@@ -217,7 +217,7 @@ reg_t syscall_t::sys_lstat(reg_t pname, reg_t len, reg_t pbuf, reg_t a3, reg_t a
 #define AT_SYSCALL(syscall, fd, name, ...) \
   (syscall(fds.lookup(fd), int(fd) == RISCV_AT_FDCWD ? do_chroot(name).c_str() : (name), __VA_ARGS__))
 
-reg_t syscall_t::sys_openat(reg_t dirfd, reg_t pname, reg_t len, reg_t flags, reg_t mode, reg_t a5, reg_t a6)
+word_t syscall_t::sys_openat(word_t dirfd, word_t pname, word_t len, word_t flags, word_t mode, word_t a5, word_t a6)
 {
   std::vector<char> name(len);
   memif->read(pname, len, &name[0]);
@@ -227,14 +227,14 @@ reg_t syscall_t::sys_openat(reg_t dirfd, reg_t pname, reg_t len, reg_t flags, re
   return fds.alloc(fd);
 }
 
-reg_t syscall_t::sys_fstatat(reg_t dirfd, reg_t pname, reg_t len, reg_t pbuf, reg_t flags, reg_t a5, reg_t a6)
+word_t syscall_t::sys_fstatat(word_t dirfd, word_t pname, word_t len, word_t pbuf, word_t flags, word_t a5, word_t a6)
 {
   std::vector<char> name(len);
   memif->read(pname, len, &name[0]);
 
   struct stat buf;
-  reg_t ret = sysret_errno(AT_SYSCALL(fstatat, dirfd, &name[0], &buf, flags));
-  if (ret != (reg_t)-1)
+  word_t ret = sysret_errno(AT_SYSCALL(fstatat, dirfd, &name[0], &buf, flags));
+  if (ret != (word_t)-1)
   {
     riscv_stat rbuf(buf);
     memif->write(pbuf, sizeof(rbuf), &rbuf);
@@ -242,14 +242,14 @@ reg_t syscall_t::sys_fstatat(reg_t dirfd, reg_t pname, reg_t len, reg_t pbuf, re
   return ret;
 }
 
-reg_t syscall_t::sys_faccessat(reg_t dirfd, reg_t pname, reg_t len, reg_t mode, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_faccessat(word_t dirfd, word_t pname, word_t len, word_t mode, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> name(len);
   memif->read(pname, len, &name[0]);
   return sysret_errno(AT_SYSCALL(faccessat, dirfd, &name[0], mode, 0));
 }
 
-reg_t syscall_t::sys_renameat(reg_t odirfd, reg_t popath, reg_t olen, reg_t ndirfd, reg_t pnpath, reg_t nlen, reg_t a6)
+word_t syscall_t::sys_renameat(word_t odirfd, word_t popath, word_t olen, word_t ndirfd, word_t pnpath, word_t nlen, word_t a6)
 {
   std::vector<char> opath(olen), npath(nlen);
   memif->read(popath, olen, &opath[0]);
@@ -258,7 +258,7 @@ reg_t syscall_t::sys_renameat(reg_t odirfd, reg_t popath, reg_t olen, reg_t ndir
                              fds.lookup(ndirfd), int(ndirfd) == RISCV_AT_FDCWD ? do_chroot(&npath[0]).c_str() : &npath[0]));
 }
 
-reg_t syscall_t::sys_linkat(reg_t odirfd, reg_t poname, reg_t olen, reg_t ndirfd, reg_t pnname, reg_t nlen, reg_t flags)
+word_t syscall_t::sys_linkat(word_t odirfd, word_t poname, word_t olen, word_t ndirfd, word_t pnname, word_t nlen, word_t flags)
 {
   std::vector<char> oname(olen), nname(nlen);
   memif->read(poname, olen, &oname[0]);
@@ -268,21 +268,21 @@ reg_t syscall_t::sys_linkat(reg_t odirfd, reg_t poname, reg_t olen, reg_t ndirfd
                              flags));
 }
 
-reg_t syscall_t::sys_unlinkat(reg_t dirfd, reg_t pname, reg_t len, reg_t flags, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_unlinkat(word_t dirfd, word_t pname, word_t len, word_t flags, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> name(len);
   memif->read(pname, len, &name[0]);
   return sysret_errno(AT_SYSCALL(unlinkat, dirfd, &name[0], flags));
 }
 
-reg_t syscall_t::sys_mkdirat(reg_t dirfd, reg_t pname, reg_t len, reg_t mode, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_mkdirat(word_t dirfd, word_t pname, word_t len, word_t mode, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> name(len);
   memif->read(pname, len, &name[0]);
   return sysret_errno(AT_SYSCALL(mkdirat, dirfd, &name[0], mode));
 }
 
-reg_t syscall_t::sys_getcwd(reg_t pbuf, reg_t size, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_getcwd(word_t pbuf, word_t size, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> buf(size);
   char* ret = getcwd(&buf[0], size);
@@ -295,7 +295,7 @@ reg_t syscall_t::sys_getcwd(reg_t pbuf, reg_t size, reg_t a2, reg_t a3, reg_t a4
   return tmp.size() + 1;
 }
 
-reg_t syscall_t::sys_getmainvars(reg_t pbuf, reg_t limit, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_getmainvars(word_t pbuf, word_t limit, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   std::vector<std::string> args = htif->target_args();
   std::vector<uint64_t> words(args.size() + 3);
@@ -322,7 +322,7 @@ reg_t syscall_t::sys_getmainvars(reg_t pbuf, reg_t limit, reg_t a2, reg_t a3, re
   return 0;
 }
 
-reg_t syscall_t::sys_chdir(reg_t path, reg_t a1, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+word_t syscall_t::sys_chdir(word_t path, word_t a1, word_t a2, word_t a3, word_t a4, word_t a5, word_t a6)
 {
   std::vector<char> buf(PATH_MAX);
   for (size_t offset = 0; offset < buf.size(); offset++)
@@ -334,12 +334,12 @@ reg_t syscall_t::sys_chdir(reg_t path, reg_t a1, reg_t a2, reg_t a3, reg_t a4, r
   return sysret_errno(chdir(buf.data()));
 }
 
-void syscall_t::dispatch(reg_t mm)
+void syscall_t::dispatch(word_t mm)
 {
-  reg_t magicmem[8];
+  word_t magicmem[8];
   memif->read(mm, sizeof(magicmem), magicmem);
 
-  reg_t n = magicmem[0];
+  word_t n = magicmem[0];
   if (n >= table.size() || !table[n])
     throw std::runtime_error("bad syscall #" + std::to_string(n));
 
@@ -348,9 +348,9 @@ void syscall_t::dispatch(reg_t mm)
   memif->write(mm, sizeof(magicmem), magicmem);
 }
 
-reg_t fds_t::alloc(int fd)
+word_t fds_t::alloc(int fd)
 {
-  reg_t i;
+  word_t i;
   for (i = 0; i < fds.size(); i++)
     if (fds[i] == -1)
       break;
@@ -362,12 +362,12 @@ reg_t fds_t::alloc(int fd)
   return i;
 }
 
-void fds_t::dealloc(reg_t fd)
+void fds_t::dealloc(word_t fd)
 {
   fds[fd] = -1;
 }
 
-int fds_t::lookup(reg_t fd)
+int fds_t::lookup(word_t fd)
 {
   if (int(fd) == RISCV_AT_FDCWD)
     return AT_FDCWD;

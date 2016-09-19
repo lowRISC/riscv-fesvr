@@ -37,7 +37,7 @@ class rfb_t : public device_t
   int sockfd;
   int afd;
   memif_t* memif;
-  reg_t addr;
+  word_t addr;
   uint16_t width;
   uint16_t height;
   uint16_t bpp;

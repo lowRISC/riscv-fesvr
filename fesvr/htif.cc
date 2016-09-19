@@ -259,32 +259,32 @@ void htif_t::write_chunk(addr_t taddr, size_t len, const void* src)
   }
 }
 
-reg_t htif_t::read_cr(uint32_t coreid, uint16_t regnum)
+word_t htif_t::read_cr(uint32_t coreid, uint16_t regnum)
 {
-  reg_t addr = (reg_t)coreid << 20 | regnum;
+  word_t addr = (word_t)coreid << 20 | regnum;
   packet_header_t hdr(HTIF_CMD_READ_CONTROL_REG, seqno, 1, addr);
   write_packet(hdr);
 
   packet_t resp = read_packet(seqno);
   seqno++;
 
-  reg_t val;
-  assert(resp.get_payload_size() == sizeof(reg_t));
-  memcpy(&val, resp.get_payload(), sizeof(reg_t));
+  word_t val;
+  assert(resp.get_payload_size() == sizeof(word_t));
+  memcpy(&val, resp.get_payload(), sizeof(word_t));
   return val;
 }
 
-reg_t htif_t::write_cr(uint32_t coreid, uint16_t regnum, reg_t val)
+word_t htif_t::write_cr(uint32_t coreid, uint16_t regnum, word_t val)
 {
-  reg_t addr = (reg_t)coreid << 20 | regnum;
+  word_t addr = (word_t)coreid << 20 | regnum;
   packet_header_t hdr(HTIF_CMD_WRITE_CONTROL_REG, seqno, 1, addr);
   write_packet(packet_t(hdr, &val, sizeof(val)));
 
   packet_t resp = read_packet(seqno);
   seqno++;
 
-  assert(resp.get_payload_size() == sizeof(reg_t));
-  memcpy(&val, resp.get_payload(), sizeof(reg_t));
+  assert(resp.get_payload_size() == sizeof(word_t));
+  memcpy(&val, resp.get_payload(), sizeof(word_t));
   return val;
 }
 
@@ -292,9 +292,9 @@ int htif_t::run()
 {
   start();
 
-  auto enq_func = [](std::queue<reg_t>* q, uint64_t x) { q->push(x); };
-  std::queue<reg_t> fromhost_queue;
-  std::function<void(reg_t)> fromhost_callback =
+  auto enq_func = [](std::queue<word_t>* q, uint64_t x) { q->push(x); };
+  std::queue<word_t> fromhost_queue;
+  std::function<void(word_t)> fromhost_callback =
     std::bind(enq_func, &fromhost_queue, std::placeholders::_1);
 
   while (!signal_exit && exitcode == 0)
@@ -321,7 +321,7 @@ int htif_t::run()
   return exit_code();
 }
 
-std::string htif_t::read_config_string(reg_t addr)
+std::string htif_t::read_config_string(word_t addr)
 {
   const int quantum = 16;
   char buf[quantum];

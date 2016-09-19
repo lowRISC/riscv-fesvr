@@ -22,8 +22,8 @@ class htif_t
   bool done();
   int exit_code();
 
-  virtual reg_t read_cr(uint32_t coreid, uint16_t regnum);
-  virtual reg_t write_cr(uint32_t coreid, uint16_t regnum, reg_t val);
+  virtual word_t read_cr(uint32_t coreid, uint16_t regnum);
+  virtual word_t write_cr(uint32_t coreid, uint16_t regnum, word_t val);
 
   virtual memif_t& memif() { return mem; }
   virtual uint32_t num_cores();
@@ -45,7 +45,7 @@ class htif_t
   virtual void load_program();
   virtual void reset();
 
-  std::string read_config_string(reg_t addr);
+  std::string read_config_string(word_t addr);
   std::string config_string;
 
  private:
